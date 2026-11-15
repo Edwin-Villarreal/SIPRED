@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#051428">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="description" content="Acceso privado a la plataforma SIPRED de monitoreo y prevención.">
     <link rel="icon" type="image/jpeg" href="{{ asset('assets/branding/sipred.jpeg') }}">
     <link rel="apple-touch-icon" href="{{ asset('assets/branding/sipred.jpeg') }}">
     <title>Iniciar sesión · SIPRED</title>
@@ -18,7 +20,7 @@
 
             <div class="login-brand-lockup">
                 <span class="login-logo-frame">
-                    <img class="login-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254">
+                    <img class="login-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254" decoding="async">
                 </span>
                 <div class="login-brand-copy">
                     <span class="eyebrow">PLATAFORMA DE MONITOREO</span>
@@ -43,6 +45,7 @@
                 <span class="eyebrow">CENTRO DE MONITOREO</span>
                 <h1 id="login-title">Bienvenido</h1>
                 <p>Accede a la plataforma SIPRED para consultar el estado del sistema.</p>
+                @if (session('status'))<div class="field-success" role="status">{{ session('status') }}</div>@endif
             </div>
 
             <form method="POST" action="{{ route('login.store') }}" class="login-form">
@@ -58,6 +61,7 @@
                     @error('password')<span class="field-error" id="password-error">{{ $message }}</span>@enderror
                 </div>
                 <label class="remember-control"><input type="checkbox" name="remember" value="1"><span>Recordar mi sesión</span></label>
+                <a class="login-recovery-link" href="{{ route('password.recovery') }}">¿Problemas para entrar?</a>
                 <button class="btn btn-sipred login-submit" type="submit">Ingresar <span aria-hidden="true">→</span></button>
             </form>
             <div class="login-security"><span class="security-dot" aria-hidden="true"></span> Acceso protegido con sesión segura</div>

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#051428">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="description" content="Plataforma privada SIPRED para consulta operativa de zonas, sensores, mediciones y alertas.">
     <link rel="icon" type="image/jpeg" href="{{ asset('assets/branding/sipred.jpeg') }}">
     <link rel="apple-touch-icon" href="{{ asset('assets/branding/sipred.jpeg') }}">
     <title>@yield('title', 'Panel') · SIPRED</title>
@@ -12,12 +14,13 @@
 </head>
 <body class="sipred-body">
     <div class="app-shell">
+        <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
         <button class="sidebar-backdrop" type="button" aria-label="Cerrar menú" data-sidebar-close></button>
 
         <aside class="sidebar" id="sipred-sidebar" aria-label="Navegación principal">
             <a class="brand-lockup" href="{{ route('dashboard') }}" aria-label="SIPRED, ir al dashboard">
                 <span class="brand-logo-frame">
-                    <img class="brand-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254">
+                    <img class="brand-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254" decoding="async">
                 </span>
                 <span class="brand-copy">
                     <span class="brand-name">SIPRED</span>
@@ -64,7 +67,7 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.8M17 15a5 5 0 0 1 3.5 5"/></svg>
                     <span>Usuarios</span>
                 </a>
-                <a class="nav-item {{ request()->routeIs('configuracion.*') ? 'is-active' : '' }}" href="{{ route('configuracion.index') }}" @if (request()->routeIs('configuracion.*')) aria-current="page" @endif>
+                <a class="nav-item {{ (request()->routeIs('configuracion.*') || request()->routeIs('recovery.settings.*')) ? 'is-active' : '' }}" href="{{ route('configuracion.index') }}" @if (request()->routeIs('configuracion.*') || request()->routeIs('recovery.settings.*')) aria-current="page" @endif>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.7-1.4-2.4 1.4-1.1a7 7 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.7 1.4 2.4-1.4 1.1a7 7 0 0 1 0 2Z" transform="translate(-1 -1) scale(.96)"/></svg>
                     <span>Configuración</span>
                 </a>
@@ -78,7 +81,7 @@
             </div>
         </aside>
 
-        <main class="main-content">
+        <main class="main-content" id="main-content">
             <header class="topbar" aria-label="Barra superior">
                 <div class="topbar-left">
                     <button class="menu-toggle" type="button" aria-label="Abrir menú" aria-controls="sipred-sidebar" aria-expanded="false" data-sidebar-toggle>
@@ -86,7 +89,7 @@
                     </button>
                     <div class="breadcrumb">
                         <a class="topbar-brand" href="{{ route('dashboard') }}" aria-label="Ir al dashboard de SIPRED">
-                            <img class="topbar-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254">
+                            <img class="topbar-logo" src="{{ asset('assets/branding/sipred.jpeg') }}" alt="Logo SIPRED - Sistema Inteligente de Prevención y Alerta Temprana de Desastres" width="1254" height="1254" decoding="async">
                             <span class="topbar-brand-name">SIPRED</span>
                         </a>
                         <span class="breadcrumb-slash" aria-hidden="true">/</span>
@@ -111,6 +114,7 @@
                             <svg class="user-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
                         </summary>
                         <div class="user-menu-panel">
+                            <a class="user-menu-recovery-link" href="{{ route('account.recovery') }}">Seguridad de la cuenta</a>
                             <div class="user-menu-person"><strong>{{ auth()->user()->name }}</strong><span>Sesión de administración local</span></div>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -123,6 +127,14 @@
                     </details>
                 </div>
             </header>
+
+            <div class="page-loading-skeleton" data-page-loading-skeleton hidden aria-hidden="true">
+                <div class="loading-skeleton-heading"><span></span><span></span></div>
+                <div class="loading-skeleton-stats"><span></span><span></span><span></span><span></span></div>
+                <div class="loading-skeleton-panels"><span></span><span></span></div>
+                <div class="loading-skeleton-table"><span></span><span></span><span></span><span></span></div>
+            </div>
+            <p class="visually-hidden" data-page-loading-status role="status" aria-live="polite" aria-atomic="true"></p>
 
             <div class="page-content">
                 @yield('content')

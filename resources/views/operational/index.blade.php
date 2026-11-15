@@ -10,8 +10,15 @@
             <h1>{{ $title }}</h1>
             <p>{{ $description }}</p>
         </div>
-        <span class="phase-badge"><span class="phase-indicator" aria-hidden="true"></span> Datos del sistema</span>
+        <div class="operational-heading-actions">
+            @if ($createUrl)
+                <a class="btn-sipred" href="{{ $createUrl }}">Registrar {{ $title === 'Sensores' ? 'sensor' : 'zona' }}</a>
+            @endif
+            <span class="phase-badge"><span class="phase-indicator" aria-hidden="true"></span> Datos del sistema</span>
+        </div>
     </section>
+
+    <p class="crud-feedback" data-crud-notice role="status" aria-live="polite" hidden></p>
 
     <section class="module-stat-grid" aria-label="Resumen de {{ $title }}">
         @foreach ($stats as $stat)
@@ -21,6 +28,18 @@
             </article>
         @endforeach
     </section>
+
+    @if ($title === 'Configuración')
+        @include('settings.partials.recovery-credentials', [
+            'settings' => $recoverySettings,
+            'returnTo' => 'configuracion.index',
+        ])
+        @include('settings.partials.recovery-options', [
+            'settings' => $recoverySettings,
+            'canManage' => $canManageRecoverySettings,
+            'standalone' => false,
+        ])
+    @endif
 
     <section class="panel measurement-page-panel">
         <div class="panel-heading">
@@ -34,6 +53,10 @@
                     <input id="module-search" type="search" name="q" value="{{ $search }}" placeholder="Buscar registros">
                     <button class="btn-sipred" type="submit">Buscar</button>
                 </form>
+            @endif
+
+            @if ($title === 'Configuración')
+                <a class="measurement-page-actions-link" href="#recovery-settings-section">Recuperación de cuenta</a>
             @endif
         </div>
 
@@ -52,7 +75,24 @@
                                     @php($cell = $row[$column['key']] ?? '—')
                                     <td>
                                         @if (is_array($cell))
-                                            @if (!empty($cell['href']))
+                                            @if ($column['key'] === 'acciones')
+                                                <div class="crud-row-actions">
+                                                    @if (!empty($cell['edit_url']))
+                                                        <a class="measurement-page-actions-link" href="{{ $cell['edit_url'] }}">Editar</a>
+                                                    @endif
+                                                    @if (!empty($cell['delete_url']))
+                                                        <form data-crud-delete-form data-api-url="{{ $cell['delete_url'] }}">
+                                                            <button class="crud-action-button is-danger" type="submit">Retirar</button>
+                                                        </form>
+                                                    @endif
+                                                    @foreach ($cell['status_actions'] ?? [] as $statusAction)
+                                                        <form data-crud-status-form data-api-url="{{ $cell['status_url'] }}">
+                                                            <input type="hidden" name="estado" value="{{ $statusAction['value'] }}">
+                                                            <button class="crud-action-button" type="submit">{{ $statusAction['label'] }}</button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            @elseif (!empty($cell['href']))
                                                 <a href="{{ $cell['href'] }}">{{ $cell['value'] ?? '—' }}</a>
                                             @else
                                                 {{ $cell['value'] ?? '—' }}

@@ -33,6 +33,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'Generar reportes', 'slug' => 'reportes.generar', 'description' => 'Generar reportes.'],
             ['name' => 'Ver configuración', 'slug' => 'configuracion.ver', 'description' => 'Consultar la configuración.'],
             ['name' => 'Editar configuración', 'slug' => 'configuracion.editar', 'description' => 'Modificar la configuración.'],
+            ['name' => 'Configurar recuperación de cuentas', 'slug' => 'recovery.settings', 'description' => 'Habilitar o deshabilitar métodos de recuperación de cuentas.'],
         ];
 
         foreach ($permissions as $attributes) {

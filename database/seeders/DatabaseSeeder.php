@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PermissionSeeder::class,
             RoleSeeder::class,
+            RecoverySettingsSeeder::class,
             TipoSensorSeeder::class,
             ZonaSeeder::class,
             SensorSeeder::class,

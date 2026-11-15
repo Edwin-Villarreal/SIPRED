@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Alerta;
 use App\Models\Evento;
+use App\Models\RecoverySetting;
+use App\Services\AccountRecoveryService;
 use App\Models\Medicion;
 use App\Models\Sensor;
 use App\Models\User;
@@ -17,8 +19,10 @@ use Illuminate\View\View;
 
 class OperationalPageController extends Controller
 {
-    public function riskMap(): View
+    public function riskMap(Request $request): View
     {
+        $canEdit = $request->user()->hasPermission('zonas.editar');
+        $canDelete = $request->user()->hasPermission('zonas.eliminar');
         $zones = Zona::query()
             ->where('estado', 'activa')
             ->withCount('sensores')
@@ -40,14 +44,14 @@ class OperationalPageController extends Controller
                 ['label' => 'Sensores activos', 'value' => Sensor::query()->where('estado', Sensor::STATUS_ACTIVE)->count()],
                 ['label' => 'Alertas abiertas', 'value' => Alerta::abiertas()->count()],
             ],
-            columns: [
+            columns: array_merge([
                 ['key' => 'zona', 'label' => 'ZONA'],
                 ['key' => 'ubicacion', 'label' => 'UBICACIÓN'],
                 ['key' => 'riesgo', 'label' => 'NIVEL DE RIESGO'],
                 ['key' => 'sensores', 'label' => 'SENSORES'],
                 ['key' => 'alertas', 'label' => 'ALERTAS ABIERTAS'],
                 ['key' => 'coordenadas', 'label' => 'COORDENADAS'],
-            ],
+            ], $canEdit || $canDelete ? [['key' => 'acciones', 'label' => 'ACCIONES']] : []),
             records: $zones,
             format: fn (Zona $zone): array => [
                 'zona' => ['value' => $zone->nombre, 'hint' => $zone->is_demo ? 'DEMO' : null],
@@ -58,12 +62,18 @@ class OperationalPageController extends Controller
                 'coordenadas' => $zone->latitud !== null && $zone->longitud !== null
                     ? $zone->latitud.', '.$zone->longitud
                     : 'Sin coordenadas',
+                'acciones' => [
+                    'edit_url' => $canEdit ? route('riesgos.edit', $zone) : null,
+                    'delete_url' => $canDelete ? url('/api/gestion/zonas/'.$zone->getKey()) : null,
+                ],
             ],
         );
     }
 
     public function sensors(Request $request): View
     {
+        $canEdit = $request->user()->hasPermission('sensores.editar');
+        $canDelete = $request->user()->hasPermission('sensores.eliminar');
         $search = trim((string) $request->query('q', ''));
         $sensors = Sensor::query()
             ->with(['tipoSensor', 'zona'])
@@ -89,7 +99,7 @@ class OperationalPageController extends Controller
                 ['label' => 'Con datos', 'value' => Sensor::query()->whereNotNull('ultima_medicion_at')->count()],
                 ['label' => 'DEMO', 'value' => Sensor::query()->where('is_demo', true)->count()],
             ],
-            columns: [
+            columns: array_merge([
                 ['key' => 'codigo', 'label' => 'CÓDIGO'],
                 ['key' => 'sensor', 'label' => 'SENSOR'],
                 ['key' => 'tipo', 'label' => 'TIPO'],
@@ -97,7 +107,7 @@ class OperationalPageController extends Controller
                 ['key' => 'estado', 'label' => 'ESTADO'],
                 ['key' => 'mediciones', 'label' => 'LECTURAS'],
                 ['key' => 'ultima', 'label' => 'ÚLTIMO DATO'],
-            ],
+            ], $canEdit || $canDelete ? [['key' => 'acciones', 'label' => 'ACCIONES']] : []),
             records: $sensors,
             format: fn (Sensor $sensor): array => [
                 'codigo' => [
@@ -111,6 +121,10 @@ class OperationalPageController extends Controller
                 'estado' => ucfirst(str_replace('_', ' ', $sensor->estado)),
                 'mediciones' => (string) $sensor->mediciones_count,
                 'ultima' => $sensor->ultima_medicion_at?->format('d/m/Y H:i') ?? 'Sin lecturas',
+                'acciones' => [
+                    'edit_url' => $canEdit ? route('sensores.edit', $sensor) : null,
+                    'delete_url' => $canDelete ? url('/api/gestion/sensores/'.$sensor->getKey()) : null,
+                ],
             ],
             searchable: true,
         );
@@ -118,6 +132,7 @@ class OperationalPageController extends Controller
 
     public function alerts(Request $request): View
     {
+        $canManage = $request->user()->hasPermission('alertas.gestionar');
         $search = trim((string) $request->query('q', ''));
         $alerts = Alerta::query()
             ->with(['sensor', 'zona'])
@@ -143,14 +158,14 @@ class OperationalPageController extends Controller
                 ['label' => 'Reconocidas', 'value' => Alerta::query()->where('estado', Alerta::STATUS_ACKNOWLEDGED)->count()],
                 ['label' => 'Resueltas', 'value' => Alerta::query()->where('estado', Alerta::STATUS_RESOLVED)->count()],
             ],
-            columns: [
+            columns: array_merge([
                 ['key' => 'fecha', 'label' => 'INICIO'],
                 ['key' => 'nivel', 'label' => 'NIVEL'],
                 ['key' => 'alerta', 'label' => 'ALERTA'],
                 ['key' => 'sensor', 'label' => 'SENSOR / ZONA'],
                 ['key' => 'estado', 'label' => 'ESTADO'],
                 ['key' => 'origen', 'label' => 'ORIGEN'],
-            ],
+            ], $canManage ? [['key' => 'acciones', 'label' => 'ACCIONES']] : []),
             records: $alerts,
             format: fn (Alerta $alert): array => [
                 'fecha' => $alert->fecha_hora_inicio?->format('d/m/Y H:i') ?? '—',
@@ -162,6 +177,15 @@ class OperationalPageController extends Controller
                 ],
                 'estado' => ucfirst($alert->estado),
                 'origen' => $alert->origen === Alerta::ORIGIN_SIMULATOR ? 'DEMO' : ucfirst($alert->origen),
+                'acciones' => [
+                    'status_url' => $canManage ? url('/api/gestion/alertas/'.$alert->getKey()) : null,
+                    'status_actions' => $canManage && in_array($alert->estado, [Alerta::STATUS_ACTIVE, Alerta::STATUS_ACKNOWLEDGED], true)
+                        ? array_values(array_filter([
+                            $alert->estado === Alerta::STATUS_ACTIVE ? ['value' => Alerta::STATUS_ACKNOWLEDGED, 'label' => 'Reconocer'] : null,
+                            ['value' => Alerta::STATUS_RESOLVED, 'label' => 'Resolver'],
+                        ]))
+                        : [],
+                ],
             ],
             searchable: true,
         );
@@ -302,7 +326,7 @@ class OperationalPageController extends Controller
         );
     }
 
-    public function configuration(): View
+    public function configuration(Request $request, AccountRecoveryService $recovery): View
     {
         $records = collect([
             (object) ['name' => 'Aplicación', 'value' => config('app.name')],
@@ -313,7 +337,7 @@ class OperationalPageController extends Controller
             (object) ['name' => 'Tiempo para considerar sensor desconectado', 'value' => config('sipred.iot_connectivity_timeout_seconds').' segundos'],
         ]);
 
-        return $this->table(
+        $view = $this->table(
             section: 'Administración',
             title: 'Configuración',
             description: 'Parámetros activos del entorno. Las credenciales y secretos no se muestran en esta pantalla.',
@@ -334,8 +358,22 @@ class OperationalPageController extends Controller
             ],
             emptyMessage: 'No hay parámetros para mostrar.',
         );
-    }
 
+        $codesOwnerId = (int) $request->session()->get('recovery_codes_user_id', 0);
+        $newCodes = $codesOwnerId === (int) $request->user()->getKey()
+            ? $request->session()->get('recovery_codes_once', [])
+            : [];
+        $request->session()->forget(['recovery_codes_once', 'recovery_codes_user_id']);
+
+        return $view->with(array_merge(
+            $recovery->credentialsSummary($request->user()),
+            [
+                'recoverySettings' => RecoverySetting::current(),
+                'canManageRecoverySettings' => $request->user()->hasPermission('recovery.settings'),
+                'newCodes' => is_array($newCodes) ? $newCodes : [],
+            ],
+        ));
+    }
     private function table(
         string $section,
         string $title,
@@ -347,6 +385,12 @@ class OperationalPageController extends Controller
         bool $searchable = false,
         string $emptyMessage = 'No hay registros disponibles.',
     ): View {
+        $user = request()->user();
+        $createUrl = match ($title) {
+            'Mapa de riesgos' => $user?->hasPermission('zonas.crear') ? route('riesgos.create') : null,
+            'Sensores' => $user?->hasPermission('sensores.crear') ? route('sensores.create') : null,
+            default => null,
+        };
         $pagination = $records instanceof LengthAwarePaginator ? $records : null;
         $items = $pagination?->getCollection() ?? collect($records);
         $rows = $items->map($format);
@@ -362,6 +406,7 @@ class OperationalPageController extends Controller
             'searchable' => $searchable,
             'search' => request()->query('q', ''),
             'emptyMessage' => $emptyMessage,
+            'createUrl' => $createUrl,
         ]);
     }
 }
